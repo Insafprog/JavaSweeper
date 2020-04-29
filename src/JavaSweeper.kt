@@ -1,4 +1,8 @@
+import sweeper.Box
 import java.awt.Dimension
+import java.awt.Graphics
+import java.awt.Image
+import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JPanel
 import javax.swing.WindowConstants
@@ -11,12 +15,22 @@ class JavaSweeper: JFrame() {
     private val imageSize = 50
 
     init {
+        setImages()
         initPanel()
         initFrame()
     }
 
     private fun initPanel() {
-        panel = JPanel()
+        panel = object : JPanel() {
+            override fun paintComponent(g: Graphics?) {
+                super.paintComponent(g)
+                g?.run {
+                    Box.values().forEach { box ->
+                        drawImage(box.image as Image, box.ordinal * imageSize, 0, this@JavaSweeper)
+                    }
+                }
+            }
+        }
         panel.preferredSize = Dimension(cols * imageSize, rows * imageSize)
         add(panel)
     }
@@ -28,6 +42,16 @@ class JavaSweeper: JFrame() {
         setLocationRelativeTo(null)
         isResizable = false
         isVisible = true
+    }
+
+    private fun setImages() {
+        Box.values().forEach { it.image = getImage(it.name.toLowerCase()) }
+    }
+
+    private fun getImage (name: String): Image {
+        val fileName = "img/$name.png"
+        val icon = ImageIcon(javaClass.getResource(fileName))
+        return icon.image
     }
 }
 
