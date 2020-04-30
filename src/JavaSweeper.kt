@@ -1,21 +1,29 @@
+import sweeper.*
 import sweeper.Box
+import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Image
-import javax.swing.ImageIcon
-import javax.swing.JFrame
-import javax.swing.JPanel
-import javax.swing.WindowConstants
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import javax.swing.*
 
 class JavaSweeper: JFrame() {
 
+    private val game: Game
     private lateinit var panel: JPanel
-    private val cols = 15
-    private val rows = 1
+    private lateinit var label: JLabel
+    private val cols = 9
+    private val rows = 9
+    private val bombs = 10
     private val imageSize = 50
 
     init {
+        game = Game(cols, rows, bombs)
+        game.start()
+        Ranges.setSize(Coord(cols, rows))
         setImages()
+        initLabel()
         initPanel()
         initFrame()
     }
@@ -25,23 +33,61 @@ class JavaSweeper: JFrame() {
             override fun paintComponent(g: Graphics?) {
                 super.paintComponent(g)
                 g?.run {
-                    Box.values().forEach { box ->
-                        drawImage(box.image as Image, box.ordinal * imageSize, 0, this@JavaSweeper)
+                    Ranges.isAllCoords.forEach { coord ->
+                        game.getBox(coord)?.let {
+                            drawImage(
+                                it.image as Image,
+                                coord.x * imageSize,
+                                coord.y * imageSize,
+                                this@JavaSweeper
+                            )
+                        }
                     }
                 }
             }
         }
-        panel.preferredSize = Dimension(cols * imageSize, rows * imageSize)
+
+        panel.addMouseListener(object : MouseAdapter() {
+            override fun mousePressed(e: MouseEvent?) {
+                e?: return
+                val x = e.x / imageSize
+                val y = e.y / imageSize
+                val coord = Coord(x, y)
+                when(e.button) {
+                    MouseEvent.BUTTON1 -> game.pressLeftButton(coord)
+                    MouseEvent.BUTTON3 -> game.pressRightButton(coord)
+                    MouseEvent.BUTTON2 -> game.start()
+                }
+                label.text = getMessage()
+                panel.repaint()
+            }
+        })
+
+        panel.preferredSize = Dimension(Ranges.size.x * imageSize, Ranges.size.y * imageSize)
         add(panel)
     }
 
+    private fun getMessage(): String {
+        return when(game.state) {
+            GameState.PLAYED -> "Think twice"
+            GameState.BOMBED -> "YOU LOSE! BIG BA-DA-BOOM"
+            GameState.WINNER -> "CONGRATULATIONS!"
+        }
+    }
+
+    private fun initLabel() {
+        label = JLabel("Welcome!")
+        add(label, BorderLayout.SOUTH)
+    }
+
     private fun initFrame() {
-        pack()
         defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
         title = "Java Sweeper"
-        setLocationRelativeTo(null)
         isResizable = false
         isVisible = true
+        pack()
+        setLocationRelativeTo(null)
+        iconImage = getImage("icon")
     }
 
     private fun setImages() {
@@ -55,6 +101,6 @@ class JavaSweeper: JFrame() {
     }
 }
 
-fun main() {
+fun main(args: Array<String>) {
     JavaSweeper()
 }
